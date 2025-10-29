@@ -1,25 +1,92 @@
-import React from 'react';
-import logo from './logo.svg';
-import './App.css';
+import React, { createContext, useState, useEffect } from "react";
+import OAuthInfo from "@arcgis/core/identity/OAuthInfo";
+import IdentityManager from "@arcgis/core/identity/IdentityManager";
+import Portal from "@arcgis/core/portal/Portal";
+import "./App.css";
+import "./index.css";
+import "@arcgis/map-components/dist/components/arcgis-scene";
+import "@arcgis/map-components/components/arcgis-scene";
+import "@arcgis/map-components/components/arcgis-zoom";
+import "@esri/calcite-components/dist/components/calcite-shell";
+import "@esri/calcite-components/dist/calcite/calcite.css";
+import { CalciteShell } from "@esri/calcite-components-react";
+import MapDisplay from "./components/MapDisplay";
+import ActionPanel from "./components/ActionPanel";
+import Header from "./components/Header";
+import { defaultName } from "./dropdownData";
+import Chart from "./components/Chart";
+import UndergroundSwitch from "./components/UndergroundSwitch";
+
+type MyDropdownContextType = {
+  buildingnames: any;
+  updateBuildingName: any;
+};
+
+const initialState = {
+  buildingnames: undefined,
+  updateBuildingName: undefined,
+};
+
+export const MyContext = createContext<MyDropdownContextType>({
+  ...initialState,
+});
 
 function App() {
+  const [loggedInState, setLoggedInState] = useState<boolean>(false);
+  useEffect(() => {
+    // Useful video: https://www.google.com/search?sca_esv=41638d9270b90df6&rlz=1C1CHBF_enPH1083PH1083&udm=7&fbs=AIIjpHxU7SXXniUZfeShr2fp4giZud1z6kQpMfoEdCJxnpm_3W-pLdZZVzNY_L9_ftx08kwv-_tUbRt8pOUS8_MjaceHuSAD6YvWZ0rfFzwmtmaBgLepZn2IJkVH-w3cPU5sPVz9l1Pp06apNShUnFfpGUJOF8p91U6HxH3ukND0OVTTVy0CGuHNdViLZqynGb0mLSRGeGVO46qnJ_2yk3F0uV6R6BW9rQ&q=apply+user+authentication+using+arcgis+maps+sdk+for+javascript+for+arcgis+enterprise&sa=X&ved=2ahUKEwjVqZbdlLKQAxUtmq8BHVQQCHcQtKgLegQIGRAB&biw=1920&bih=911&dpr=1#fpstate=ive&vld=cid:fcf356be,vid:hQH9d1vc8Gc,st:0
+    // check app authentication: https://developers.arcgis.com/documentation/security-and-authentication/app-authentication/how-to-implement-app-authentication/
+    const info = new OAuthInfo({
+      appId: "lzL4JbXi8VEfxCve",
+      popup: false,
+      portalUrl: "https://gis.railway-sector.com/portal",
+    });
+
+    IdentityManager.registerOAuthInfos([info]);
+    async function loginAndLoadPortal() {
+      try {
+        await IdentityManager.checkSignInStatus(info.portalUrl + "/sharing");
+        const portal: any = new Portal({
+          // access: "public",
+          url: info.portalUrl,
+          authMode: "no-prompt",
+        });
+        portal.load().then(() => {
+          setLoggedInState(true);
+          console.log("Logged in as: ", portal.user.username);
+        });
+      } catch (error) {
+        console.error("Authentication error:", error);
+        IdentityManager.getCredential(info.portalUrl);
+      }
+    }
+    loginAndLoadPortal();
+  }, []);
+
+  const [buildingnames, setBuilding] = useState<any>(defaultName);
+
+  const updateBuildingName = (newBuildingName: any) => {
+    setBuilding(newBuildingName);
+  };
+
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.tsx</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
-    </div>
+    <>
+      {loggedInState === true ? (
+        <div>
+          <CalciteShell>
+            <MyContext value={{ buildingnames, updateBuildingName }}>
+              <ActionPanel />
+              <UndergroundSwitch />
+              <MapDisplay />
+              <Chart />
+              <Header />
+            </MyContext>
+          </CalciteShell>
+        </div>
+      ) : (
+        <div></div>
+      )}
+    </>
   );
 }
 
