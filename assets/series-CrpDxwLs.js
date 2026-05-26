@@ -1,0 +1,1 @@
+import{be as o}from"./index-BHgC6kKk.js";const y=l=>l.lineSymbol?.style,b=(l,e)=>{e.lineSymbol??=o(),e.lineSymbol.style=l},i=l=>l.lineSymbol?.width,n=(l,e)=>{e.lineSymbol??=o(),e.lineSymbol.width=l};export{y as k,b as q,i as v,n as z};
