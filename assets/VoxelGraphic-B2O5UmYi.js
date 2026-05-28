@@ -1,0 +1,1 @@
+import{vd as r,jt as t,jy as l,lH as o}from"./index-CgIaXlqt.js";let e=class extends r{constructor(s){super(s),this.gpuResult=null}};t([l({constructOnly:!0,clonable:"reference"})],e.prototype,"gpuResult",void 0),e=t([o("esri.views.3d.layers.VoxelGraphic")],e);export{e as t};

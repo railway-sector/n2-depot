@@ -1,0 +1,1 @@
+import{gd as e,fy as t}from"./index-CgIaXlqt.js";function n(u,f){return f.push(u.buffer),{buffer:u.buffer,layout:new e(u.layout)}}function o(u){return new t(u.layout).createView(u.buffer)}export{o as t,n as u};
