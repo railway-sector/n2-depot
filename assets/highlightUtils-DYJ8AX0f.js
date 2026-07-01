@@ -1,0 +1,1 @@
+import{Eh as t,Id as e,pi as i}from"./index-DYd-m-VK.js";function u(r){return t.isCollection(r)?r.toArray():Array.isArray(r)?r:n(r)||e(r)||a(r)?[r]:s}function n(r){return typeof r=="number"||typeof r=="string"}const s=[],o=i();function a(r){return r.declaredClass==="esri.views.3d.layers.i3s.PointCloudGraphic"}export{n as e,u as i,o as s};
