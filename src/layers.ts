@@ -13,10 +13,21 @@ import SimpleMarkerSymbol from "@arcgis/core/symbols/SimpleMarkerSymbol.js";
 import { labelSymbol3DLine } from "./Label";
 import GroupLayer from "@arcgis/core/layers/GroupLayer";
 import QueryExpressionLayers from "query-layers-expression";
+import { status_field } from "./uniqueValues";
+import ChartStackColumns from "chart-stack-column";
+
+export const chartstack = new ChartStackColumns(
+  undefined, // qChart
+  undefined, // categoryTypes
+  undefined, // categoryTypeField
+  undefined, // layers
+  status_field, // status field
+  undefined, // statusState
+);
 
 export const queryc = new QueryExpressionLayers(
-  undefined,
-  undefined,
+  [undefined],
+  [undefined],
   undefined,
   undefined,
   "string",
@@ -27,8 +38,8 @@ export const queryc = new QueryExpressionLayers(
 );
 
 export const queryc2 = new QueryExpressionLayers(
-  undefined,
-  undefined,
+  [undefined],
+  [undefined],
   undefined,
   undefined,
   "string",

@@ -1,9 +1,7 @@
 import { useEffect, useRef, useState, use } from "react";
-import { depotLayer, queryc } from "../layers";
+import { chartstack, depotLayer, queryc } from "../layers";
 import * as am5 from "@amcharts/amcharts5";
 import * as am5xy from "@amcharts/amcharts5/xy";
-import am5themes_Animated from "@amcharts/amcharts5/themes/Animated";
-import am5themes_Responsive from "@amcharts/amcharts5/themes/Responsive";
 import { thousands_separators, zoomToLayer } from "../Query";
 import { ArcgisScene } from "@arcgis/map-components/dist/components/arcgis-scene";
 import { MyContext } from "../contexts/MyContext";
@@ -16,51 +14,51 @@ import {
   statusArray,
 } from "../uniqueValues";
 import { queryDefinitionExpression } from "../QueryExpression";
-import { chartDataStackColumns } from "../ChartDataGenerator";
 import { chartRenderer } from "../ChartRenderer";
-
-// Dispose function
-function maybeDisposeRoot(divId: any) {
-  am5.array.each(am5.registry.rootElements, function (root) {
-    if (root.dom.id === divId) {
-      root.dispose();
-    }
-  });
-}
+import { useQuery } from "@tanstack/react-query";
+import type { ChartResponse } from "../interfaceKeys";
+import { legendSetter, rootSetter } from "../chartSetter";
 
 // Draw chart
 const Chart = () => {
   const arcgisScene = document.querySelector("arcgis-scene") as ArcgisScene;
-  const { buildings, updateChartPanelwidth, chartPanelwidth } = use(MyContext);
+  const [chartPanelwidth, setChartPanelwidth] = useState<any>();
+  const { buildings } = use(MyContext);
   const legendRef = useRef<unknown | any | undefined>({});
   const chartRef = useRef<unknown | any | undefined>({});
-  const [chartData, setChartData] = useState([]);
-  const [progress, setProgress] = useState<number>(0);
-  const [totalNumber, setTotalNumber] = useState<number>(0);
-
   const chartID = "depot-bar";
-  useEffect(() => {
-    queryc.qValues = [buildings];
-    queryc.qFields = [buildingName_field];
-    queryDefinitionExpression({
-      queryExpression: queryc.queryExpression(),
-      featureLayer: [depotLayer],
-    });
-    chartDataStackColumns({
-      qChart: queryc.queryExpression(),
-      chartCategoryTypes: buildingCategoryTypes,
-      chartCategoryField: building_category_field,
-      chartCategoryValueType: "number",
-      layers: [depotLayer],
-      statusState: [1, 2, 3, 4],
-      statusField: status_field,
-    }).then((result: any) => {
-      setChartData(result[0]);
-      setProgress(result[2]);
-      setTotalNumber(result[1]);
-    });
-    zoomToLayer(depotLayer, arcgisScene?.view);
-  }, [buildings]);
+
+  const { data } = useQuery<ChartResponse | any>({
+    queryKey: [buildings, depotLayer, status_field],
+    queryFn: async () => {
+      queryc.qValues = [buildings];
+      queryc.qFields = [buildingName_field];
+      queryDefinitionExpression({
+        queryExpression: queryc.queryExpression(),
+        featureLayer: [depotLayer],
+      });
+
+      chartstack.qChart = queryc.queryExpression();
+      chartstack.layers = [depotLayer];
+      chartstack.categoryTypes = buildingCategoryTypes;
+      chartstack.categoryTypeField = building_category_field;
+      chartstack.statusState = [1, 2, 3, 4];
+      chartstack.statusField = status_field;
+      const chartData = await chartstack.chartDataStackColumns();
+
+      zoomToLayer(depotLayer, arcgisScene?.view);
+
+      return {
+        chartData: chartData[0] || [],
+        perc_comp: chartData[2] || 0,
+        totaln: chartData[1] || 0,
+      };
+    },
+    // staleTime: Infinity,
+  });
+  const chartData = data?.chartData || [];
+  const perc_comp = data?.perc_comp || 0;
+  const totaln = data?.totaln || 0;
 
   // Define parameters
   const marginTop = 0;
@@ -88,18 +86,7 @@ const Chart = () => {
 
   // Utility Chart
   useEffect(() => {
-    maybeDisposeRoot(chartID);
-
-    const root = am5.Root.new(chartID);
-    root.container.children.clear();
-    root._logo?.dispose();
-
-    // Set themesf
-    // https://www.amcharts.com/docs/v5/concepts/themes/
-    root.setThemes([
-      am5themes_Animated.new(root),
-      am5themes_Responsive.new(root),
-    ]);
+    const root = rootSetter({ chartID: chartID });
 
     const chart = root.container.children.push(
       am5xy.XYChart.new(root, {
@@ -120,28 +107,27 @@ const Chart = () => {
     );
     chartRef.current = chart;
 
-    const legend = chart.children.push(
-      am5.Legend.new(root, {
-        centerX: am5.p50,
-        centerY: am5.percent(50),
-        x: am5.percent(60),
-        y: am5.percent(97),
-        marginTop: 20,
-        scale: 0.8,
-        layout: root.horizontalLayout,
-      }),
-    );
+    const legend = legendSetter({
+      chart: chart,
+      root: root,
+      centerX: 50,
+      centerY: 50,
+      x: 60,
+      y: 97,
+      marginTop: 20,
+      scale: 0.8,
+      layout: root.horizontalLayout,
+    });
     legendRef.current = legend;
 
     chartRenderer({
       root: root,
       chart: chart,
-      layer: depotLayer,
+      layers: [depotLayer],
       data: chartData,
-      q1Value: buildings,
-      q1Field: buildingName_field,
+      qChart: queryc,
       chartCategoryTypes: buildingCategoryTypes,
-      chartCategoryField: building_category_field,
+      chartCategoryFieldScene: building_category_field,
       statusTypename: ["Completed", "To be Constructed", "Under Construction"], //["Completed", "To be Constructed", "Under Construction"],
       statusStatename: ["comp", "incomp", "ongoing"], //["comp", "incomp", "ongoing"],
       statusArray: statusArray,
@@ -155,7 +141,7 @@ const Chart = () => {
       chartIconPositionX: chartIconPositionX,
       chartPaddingRightIconLabel: chartPaddingRightIconLabel,
       legend: legend,
-      updateChartPanelwidth: updateChartPanelwidth,
+      updateChartPanelwidth: setChartPanelwidth,
     });
 
     chart.appear(1000, 100);
@@ -219,7 +205,7 @@ const Chart = () => {
                 margin: "auto",
               }}
             >
-              {progress} %
+              {perc_comp} %
             </dd>
             <div
               style={{
@@ -229,7 +215,7 @@ const Chart = () => {
                 lineHeight: "1.2",
               }}
             >
-              ({thousands_separators(totalNumber)})
+              ({thousands_separators(totaln)})
             </div>
           </dl>
         </div>
